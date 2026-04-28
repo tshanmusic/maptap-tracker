@@ -4,5 +4,14 @@
     "Cat",
     "Sab"
   ],
-  "sessions": []
+  "sessions": [
+    {
+      "date": "2026-04-27",
+      "scores": [
+        772,
+        null,
+        null
+      ]
+    }
+  ]
 }
