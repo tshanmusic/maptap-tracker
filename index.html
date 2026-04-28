@@ -829,12 +829,16 @@ function computeStats(players, sessions) {
   return players.map((name, i) => {
     const scores = sessions.map(s => s.scores[i]).filter(Number.isFinite);
     const best   = scores.length ? Math.max(...scores) : null;
+    const low    = scores.length ? Math.min(...scores) : null;
     const bestSess = best !== null ? sessions.find(s => s.scores[i] === best) : null;
+    const lowSess  = low  !== null ? sessions.find(s => s.scores[i] === low)  : null;
     return {
       name,
       avg:      average(scores),
       best,
       bestDate: bestSess?.date ?? null,
+      low,
+      lowDate:  lowSess?.date ?? null,
       count:    scores.length,
     };
   });
@@ -882,6 +886,9 @@ function renderStats(stats) {
         <div class="stat-sep"></div>
         <div class="stat-row-val">${s.best !== null ? fmtNum(s.best) : '—'}</div>
         <div class="stat-sub">top score · ${esc(label)}${s.bestDate ? ` · ${esc(s.bestDate)}` : ''}</div>
+        <div class="stat-sep"></div>
+        <div class="stat-row-val">${s.low !== null ? fmtNum(s.low) : '—'}</div>
+        <div class="stat-sub">low score · ${esc(label)}${s.lowDate ? ` · ${esc(s.lowDate)}` : ''}</div>
         <div class="stat-sep"></div>
         <div class="stat-sessions"><b>${s.count}</b> session${s.count !== 1 ? 's' : ''}</div>
       </div>`;
