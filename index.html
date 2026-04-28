@@ -674,8 +674,8 @@ function ghHeaders(token) {
 
 async function fetchFile(cfg) {
   const res = await fetch(
-    `${GH}/repos/${cfg.username}/${cfg.repo}/contents/scores.json`,
-    { headers: ghHeaders(cfg.token) }
+    `${GH}/repos/${cfg.username}/${cfg.repo}/contents/scores.json?t=${Date.now()}`,
+    { headers: ghHeaders(cfg.token), cache: 'no-store' }
   );
   if (res.status === 404) return null;
   if (!res.ok) {
