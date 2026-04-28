@@ -814,7 +814,7 @@ function buildLogForm() {
     div.className = 'log-field';
     div.innerHTML = `
       <label>${esc(name)}</label>
-      <input type="number" id="log-p${i}" placeholder="0" min="0" step="1">`;
+      <input type="number" id="log-p${i}" placeholder="—" min="0" step="1">`;
     container.appendChild(div);
   });
 
@@ -893,8 +893,8 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     return v === '' ? null : Number(v);
   });
 
-  if (scores.some(v => v === null || isNaN(v))) {
-    setSaveMsg('Enter a score for every player.', 'err');
+  if (scores.every(v => v === null) || scores.some(v => v !== null && isNaN(v))) {
+    setSaveMsg('Enter at least one score.', 'err');
     return;
   }
 
@@ -907,9 +907,25 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     const latest = await fetchFile(cfg);
     if (latest) file = latest;
 
-    file.data.sessions.push({ date, scores });
-    const newSha = await putFile(cfg, file.data, file.sha);
-    file.sha = newSha;
+    const snapshot = JSON.parse(JSON.stringify(file.data));
+
+    // Merge into existing session for this date, or create a new one
+    const existingIdx = file.data.sessions.findIndex(s => s.date === date);
+    if (existingIdx >= 0) {
+      scores.forEach((v, i) => {
+        if (v !== null) file.data.sessions[existingIdx].scores[i] = v;
+      });
+    } else {
+      file.data.sessions.push({ date, scores });
+    }
+
+    try {
+      const newSha = await putFile(cfg, file.data, file.sha);
+      file.sha = newSha;
+    } catch (e) {
+      file.data = snapshot;
+      throw e;
+    }
 
     // Clear score inputs
     cfg.players.forEach((_, i) => {
@@ -919,8 +935,6 @@ document.getElementById('save-btn').addEventListener('click', async () => {
     setSaveMsg('Saved!', 'ok');
     renderAll();
   } catch (e) {
-    // Roll back the optimistic push
-    file.data.sessions.pop();
     setSaveMsg(`Error: ${e.message}`, 'err');
     console.error(e);
   } finally {
