@@ -456,6 +456,41 @@
 
     .empty { text-align: center; color: var(--muted); padding: 2rem 1rem; font-size: 0.9375rem; }
 
+    /* ─── Tabs ───────────────────────────────────────────── */
+
+    .tabs {
+      display: flex;
+      gap: 0.25rem;
+      border-bottom: 1.5px solid var(--border);
+      background: var(--surface);
+      padding: 0 1rem;
+      max-width: 740px;
+      margin: 0 auto;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      border-bottom: 2.5px solid transparent;
+      margin-bottom: -1.5px;
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.15s;
+    }
+
+    .tab-btn:hover { color: var(--text); }
+
+    .tab-btn.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .tab-panel { display: none; }
+    .tab-panel.active { display: contents; }
+
     /* ─── Spinner ────────────────────────────────────────── */
 
     .spinner {
@@ -551,54 +586,67 @@
     </div>
   </header>
 
+  <nav class="tabs">
+    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+    <button class="tab-btn" data-tab="history">History</button>
+  </nav>
+
   <main>
 
-    <!-- Leaderboard -->
-    <section id="sec-leaderboard">
-      <div class="section-heading">Leaderboard</div>
-      <div class="lb-grid">
-        <div class="card">
-          <div class="card-title">Avg Score</div>
-          <div id="lb-avg"></div>
-        </div>
-        <div class="card">
-          <div class="card-title">All-Time Best</div>
-          <div id="lb-best"></div>
-        </div>
-      </div>
-    </section>
+    <div class="tab-panel active" id="tab-dashboard">
 
-    <!-- Quick Stats -->
-    <section id="sec-stats">
-      <div class="section-heading">Player Stats</div>
-      <div class="stats-grid" id="stats-grid"></div>
-    </section>
-
-    <!-- Log Scores -->
-    <section id="sec-log">
-      <div class="section-heading">Log Session</div>
-      <div class="card">
-        <div class="log-inputs" id="log-inputs">
-          <div class="log-field">
-            <label>Date</label>
-            <input type="date" id="log-date">
+      <!-- Leaderboard -->
+      <section id="sec-leaderboard">
+        <div class="section-heading">Leaderboard</div>
+        <div class="lb-grid">
+          <div class="card">
+            <div class="card-title">Avg Score</div>
+            <div id="lb-avg"></div>
           </div>
-          <!-- player score fields injected by JS -->
+          <div class="card">
+            <div class="card-title">All-Time Best</div>
+            <div id="lb-best"></div>
+          </div>
         </div>
-        <div class="log-actions">
-          <button class="btn btn-save" id="save-btn">Save</button>
-          <span class="save-msg" id="save-msg"></span>
-        </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- History -->
-    <section id="sec-history">
-      <div class="section-heading">History</div>
-      <div class="card">
-        <div id="history"></div>
-      </div>
-    </section>
+      <!-- Quick Stats -->
+      <section id="sec-stats">
+        <div class="section-heading">Player Stats</div>
+        <div class="stats-grid" id="stats-grid"></div>
+      </section>
+
+      <!-- Log Scores -->
+      <section id="sec-log">
+        <div class="section-heading">Log Session</div>
+        <div class="card">
+          <div class="log-inputs" id="log-inputs">
+            <div class="log-field">
+              <label>Date</label>
+              <input type="date" id="log-date">
+            </div>
+            <!-- player score fields injected by JS -->
+          </div>
+          <div class="log-actions">
+            <button class="btn btn-save" id="save-btn">Save</button>
+            <span class="save-msg" id="save-msg"></span>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <div class="tab-panel" id="tab-history">
+
+      <!-- History -->
+      <section id="sec-history">
+        <div class="section-heading">History</div>
+        <div class="card">
+          <div id="history"></div>
+        </div>
+      </section>
+
+    </div>
 
   </main>
 </div>
@@ -980,6 +1028,17 @@ document.getElementById('settings-btn').addEventListener('click', () => {
   }
   document.getElementById('app').style.display          = 'none';
   document.getElementById('setup-screen').style.display = 'flex';
+});
+
+/* ══════════════════════════════════ TABS ═══ */
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+  });
 });
 
 /* ═══════════════════════════════════ BOOT ═══ */
