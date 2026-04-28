@@ -1,0 +1,985 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>maptap</title>
+  <style>
+    :root {
+      --bg:          #f4f3ef;
+      --surface:     #ffffff;
+      --border:      #e4e3de;
+      --text:        #1c1b18;
+      --muted:       #6b6965;
+      --accent:      #5856d6;
+      --accent-soft: #ededff;
+      --gold:        #d97706;
+      --win:         #16a34a;
+      --win-soft:    #f0fdf4;
+      --danger:      #dc2626;
+      --shadow:      0 1px 3px rgba(0,0,0,.07), 0 1px 2px rgba(0,0,0,.04);
+      --shadow-lg:   0 4px 16px rgba(0,0,0,.10);
+      --r:           12px;
+      --r-sm:        8px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── Setup ──────────────────────────────────────────── */
+
+    #setup-screen {
+      min-height: 100vh;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+    }
+
+    .setup-card {
+      background: var(--surface);
+      border-radius: var(--r);
+      box-shadow: var(--shadow-lg);
+      padding: 2rem;
+      width: 100%;
+      max-width: 460px;
+    }
+
+    .setup-card h1 {
+      font-size: 1.625rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+    }
+
+    .setup-card .tagline {
+      color: var(--muted);
+      font-size: 0.875rem;
+      margin-top: 0.2rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .field-group { margin-bottom: 1rem; }
+
+    .field-group label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 0.35rem;
+    }
+
+    .field-group input {
+      width: 100%;
+      padding: 0.6rem 0.875rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 0.9375rem;
+      color: var(--text);
+      background: var(--surface);
+      transition: border-color 0.15s;
+      outline: none;
+    }
+
+    .field-group input:focus { border-color: var(--accent); }
+    .field-group input::placeholder { color: #c8c7c2; }
+
+    .players-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.625rem;
+    }
+
+    .divider {
+      border: none;
+      border-top: 1.5px solid var(--border);
+      margin: 1.5rem 0;
+    }
+
+    .group-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      margin-bottom: 0.75rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      border: none;
+      border-radius: var(--r-sm);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0.625rem 1.25rem;
+      transition: opacity 0.15s, transform 0.1s;
+    }
+
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      width: 100%;
+      padding: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+
+    .alert {
+      border-radius: var(--r-sm);
+      padding: 0.625rem 0.875rem;
+      font-size: 0.8125rem;
+      margin-top: 0.75rem;
+      display: none;
+    }
+
+    .alert-error { background: #fef2f2; color: var(--danger); }
+    .alert-success { background: var(--win-soft); color: var(--win); }
+
+    /* ─── Header ─────────────────────────────────────────── */
+
+    #app { display: none; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1.5px solid var(--border);
+    }
+
+    .header-inner {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.375rem;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #d1d5db;
+      flex-shrink: 0;
+    }
+
+    .status-dot.ok { background: #22c55e; }
+    .status-dot.err { background: var(--danger); }
+
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      color: var(--muted);
+      padding: 0.35rem 0.75rem;
+      font-size: 0.8125rem;
+    }
+
+    .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ─── Main ───────────────────────────────────────────── */
+
+    main {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 1.75rem 1rem 3rem;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    .section-heading {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 0.75rem;
+    }
+
+    /* ─── Cards ──────────────────────────────────────────── */
+
+    .card {
+      background: var(--surface);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      padding: 1.25rem;
+    }
+
+    .card-title {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      color: var(--muted);
+      margin-bottom: 1rem;
+    }
+
+    /* ─── Leaderboard ────────────────────────────────────── */
+
+    .lb-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .lb-row {
+      display: flex;
+      align-items: center;
+      gap: 0.625rem;
+      padding: 0.5rem 0;
+    }
+
+    .lb-row + .lb-row { border-top: 1px solid var(--border); }
+
+    .lb-rank {
+      width: 22px;
+      text-align: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .lb-rank.top { font-size: 1rem; }
+
+    .lb-name {
+      flex: 1;
+      font-size: 0.9375rem;
+    }
+
+    .lb-name.top { font-weight: 700; }
+
+    .lb-score {
+      font-size: 0.9375rem;
+      font-weight: 600;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .lb-empty {
+      font-size: 0.875rem;
+      color: var(--muted);
+      padding: 0.5rem 0;
+    }
+
+    /* ─── Quick Stats ────────────────────────────────────── */
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1rem;
+    }
+
+    .stat-card {
+      background: var(--surface);
+      border-radius: var(--r);
+      box-shadow: var(--shadow);
+      padding: 1.125rem;
+      border: 1.5px solid transparent;
+    }
+
+    .stat-card.leader { border-color: var(--accent); }
+
+    .stat-player-name {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.875rem;
+      display: flex;
+      align-items: center;
+      gap: 0.3rem;
+    }
+
+    .stat-big {
+      font-size: 1.625rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .stat-sub {
+      font-size: 0.725rem;
+      color: var(--muted);
+      margin-top: 0.2rem;
+    }
+
+    .stat-sep {
+      border-top: 1px solid var(--border);
+      margin: 0.75rem 0;
+    }
+
+    .stat-row-val {
+      font-size: 1.125rem;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .stat-sessions {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .stat-sessions b { color: var(--text); }
+
+    /* ─── Log ────────────────────────────────────────────── */
+
+    .log-inputs {
+      display: grid;
+      grid-template-columns: 1fr repeat(3, 1fr);
+      gap: 0.75rem;
+      align-items: end;
+    }
+
+    .log-field label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .log-field input {
+      width: 100%;
+      padding: 0.6rem 0.75rem;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 0.9375rem;
+      color: var(--text);
+      background: var(--surface);
+      outline: none;
+      transition: border-color 0.15s;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .log-field input:focus { border-color: var(--accent); }
+
+    .log-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    .btn-save {
+      background: var(--accent);
+      color: #fff;
+      padding: 0.6rem 1.5rem;
+    }
+
+    .btn-save:hover:not(:disabled) { opacity: 0.85; }
+
+    .save-msg {
+      font-size: 0.875rem;
+      color: var(--muted);
+    }
+
+    .save-msg.ok  { color: var(--win); }
+    .save-msg.err { color: var(--danger); }
+
+    /* ─── History ────────────────────────────────────────── */
+
+    .history-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+
+    .history-table th {
+      text-align: left;
+      padding: 0 0.5rem 0.625rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+      color: var(--muted);
+      border-bottom: 1.5px solid var(--border);
+    }
+
+    .history-table th:not(:first-child) { text-align: right; }
+
+    .history-table td {
+      padding: 0.6rem 0.5rem;
+      border-bottom: 1px solid var(--border);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .history-table td:not(:first-child) { text-align: right; }
+    .history-table tbody tr:last-child td { border-bottom: none; }
+
+    .td-date { color: var(--muted); font-size: 0.875rem; }
+
+    .td-win { font-weight: 700; color: var(--win); }
+
+    .empty { text-align: center; color: var(--muted); padding: 2rem 1rem; font-size: 0.9375rem; }
+
+    /* ─── Spinner ────────────────────────────────────────── */
+
+    .spinner {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border: 2px solid rgba(255,255,255,.35);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin .65s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Responsive ─────────────────────────────────────── */
+
+    @media (max-width: 600px) {
+      .lb-grid    { grid-template-columns: 1fr; }
+      .stats-grid { grid-template-columns: 1fr; }
+      .log-inputs {
+        grid-template-columns: 1fr 1fr;
+      }
+      .log-inputs .log-field:first-child {
+        grid-column: 1 / -1;
+      }
+    }
+
+    @media (max-width: 380px) {
+      .log-inputs { grid-template-columns: 1fr; }
+      .log-inputs .log-field:first-child { grid-column: 1; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════ SETUP SCREEN ═══ -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <h1>maptap</h1>
+    <p class="tagline">Score tracker — connect your GitHub repo to get started.</p>
+
+    <div class="group-label">GitHub</div>
+
+    <div class="field-group">
+      <label>Username</label>
+      <input id="s-user" type="text" placeholder="your-username" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field-group">
+      <label>Repository name</label>
+      <input id="s-repo" type="text" placeholder="maptap-scores" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="field-group">
+      <label>Personal access token</label>
+      <input id="s-token" type="password" placeholder="ghp_…" autocomplete="off" spellcheck="false">
+    </div>
+
+    <hr class="divider">
+
+    <div class="group-label">Players</div>
+    <div class="players-grid">
+      <div class="field-group">
+        <label>Player 1</label>
+        <input id="s-p1" type="text" placeholder="Alice">
+      </div>
+      <div class="field-group">
+        <label>Player 2</label>
+        <input id="s-p2" type="text" placeholder="Bob">
+      </div>
+      <div class="field-group">
+        <label>Player 3</label>
+        <input id="s-p3" type="text" placeholder="Carol">
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="setup-btn">Save &amp; Continue</button>
+    <div class="alert alert-error" id="setup-err"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════ APP ════════ -->
+<div id="app">
+
+  <header>
+    <div class="header-inner">
+      <span class="logo">maptap</span>
+      <div class="header-right">
+        <div class="status-pill">
+          <div class="status-dot" id="status-dot"></div>
+          <span id="status-text">—</span>
+        </div>
+        <button class="btn btn-ghost" id="settings-btn">Settings</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- Leaderboard -->
+    <section id="sec-leaderboard">
+      <div class="section-heading">Leaderboard</div>
+      <div class="lb-grid">
+        <div class="card">
+          <div class="card-title">Avg Score</div>
+          <div id="lb-avg"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">All-Time Best</div>
+          <div id="lb-best"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Quick Stats -->
+    <section id="sec-stats">
+      <div class="section-heading">Player Stats</div>
+      <div class="stats-grid" id="stats-grid"></div>
+    </section>
+
+    <!-- Log Scores -->
+    <section id="sec-log">
+      <div class="section-heading">Log Session</div>
+      <div class="card">
+        <div class="log-inputs" id="log-inputs">
+          <div class="log-field">
+            <label>Date</label>
+            <input type="date" id="log-date">
+          </div>
+          <!-- player score fields injected by JS -->
+        </div>
+        <div class="log-actions">
+          <button class="btn btn-save" id="save-btn">Save</button>
+          <span class="save-msg" id="save-msg"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- History -->
+    <section id="sec-history">
+      <div class="section-heading">History</div>
+      <div class="card">
+        <div id="history"></div>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+'use strict';
+
+/* ═══════════════════════════════════ UTILS ═══ */
+
+function esc(s) {
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function toB64(str) {
+  const bytes = new TextEncoder().encode(str);
+  let bin = '';
+  bytes.forEach(b => (bin += String.fromCharCode(b)));
+  return btoa(bin);
+}
+
+function fromB64(b64) {
+  const bin = atob(b64.replace(/\s/g, ''));
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new TextDecoder().decode(bytes);
+}
+
+function todayISO() {
+  const d = new Date();
+  return [
+    d.getFullYear(),
+    String(d.getMonth() + 1).padStart(2, '0'),
+    String(d.getDate()).padStart(2, '0'),
+  ].join('-');
+}
+
+function fmtNum(n) {
+  return Number.isFinite(n) ? n.toLocaleString() : '—';
+}
+
+function average(arr) {
+  const valid = arr.filter(Number.isFinite);
+  if (!valid.length) return null;
+  return Math.round(valid.reduce((a, b) => a + b, 0) / valid.length);
+}
+
+/* ═══════════════════════════════ CONFIG / LS ═══ */
+
+const LS_KEY = 'maptap_v1';
+
+function loadCfg() {
+  try { return JSON.parse(localStorage.getItem(LS_KEY)) || null; }
+  catch { return null; }
+}
+
+function saveCfg(c) {
+  localStorage.setItem(LS_KEY, JSON.stringify(c));
+}
+
+/* ═══════════════════════════ GITHUB API ═══ */
+
+const GH = 'https://api.github.com';
+
+function ghHeaders(token) {
+  return {
+    Authorization: `token ${token}`,
+    Accept: 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+  };
+}
+
+async function fetchFile(cfg) {
+  const res = await fetch(
+    `${GH}/repos/${cfg.username}/${cfg.repo}/contents/scores.json`,
+    { headers: ghHeaders(cfg.token) }
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.message || `GitHub ${res.status}`);
+  }
+  const j = await res.json();
+  return { data: JSON.parse(fromB64(j.content)), sha: j.sha };
+}
+
+async function putFile(cfg, data, sha) {
+  const body = {
+    message: sha ? `Update scores — ${todayISO()}` : 'Initialize scores.json',
+    content: toB64(JSON.stringify(data, null, 2)),
+  };
+  if (sha) body.sha = sha;
+
+  const res = await fetch(
+    `${GH}/repos/${cfg.username}/${cfg.repo}/contents/scores.json`,
+    { method: 'PUT', headers: ghHeaders(cfg.token), body: JSON.stringify(body) }
+  );
+  if (!res.ok) {
+    const j = await res.json().catch(() => ({}));
+    throw new Error(j.message || `GitHub ${res.status}`);
+  }
+  const j = await res.json();
+  return j.content.sha;
+}
+
+/* ═══════════════════════════════ APP STATE ═══ */
+
+let cfg   = null;   // { username, repo, token, players: [s,s,s] }
+let file  = null;   // { data: {...}, sha: string }
+
+/* ══════════════════════════ COMPUTED STATS ═══ */
+
+function computeStats(data) {
+  return data.players.map((name, i) => {
+    const scores = data.sessions.map(s => s.scores[i]).filter(Number.isFinite);
+    const best   = scores.length ? Math.max(...scores) : null;
+    const bestSess = best !== null
+      ? data.sessions.find(s => s.scores[i] === best)
+      : null;
+    return {
+      name,
+      avg:      average(scores),
+      best,
+      bestDate: bestSess?.date ?? null,
+      count:    scores.length,
+    };
+  });
+}
+
+/* ════════════════════════════════ RENDER ═══ */
+
+function renderLeaderboard(stats) {
+  const ranks = (list, key) => {
+    if (!list.length) return '<div class="lb-empty">No data yet.</div>';
+    return list.map((s, i) => `
+      <div class="lb-row">
+        <span class="lb-rank${i === 0 ? ' top' : ''}">${i === 0 ? '👑' : i + 1}</span>
+        <span class="lb-name${i === 0 ? ' top' : ''}">${esc(s.name)}</span>
+        <span class="lb-score">${fmtNum(s[key])}</span>
+      </div>`).join('');
+  };
+
+  const byAvg  = [...stats].filter(s => s.avg  !== null).sort((a,b) => b.avg  - a.avg);
+  const byBest = [...stats].filter(s => s.best !== null).sort((a,b) => b.best - a.best);
+
+  document.getElementById('lb-avg').innerHTML  = ranks(byAvg,  'avg');
+  document.getElementById('lb-best').innerHTML = ranks(byBest, 'best');
+}
+
+function renderStats(stats) {
+  const topAvg = stats.reduce((best, s) =>
+    s.avg !== null && (best === null || s.avg > best.avg) ? s : best, null);
+
+  document.getElementById('stats-grid').innerHTML = stats.map(s => {
+    const isTop = s === topAvg;
+    return `
+      <div class="stat-card${isTop ? ' leader' : ''}">
+        <div class="stat-player-name">
+          ${isTop ? '<span aria-hidden="true">👑</span>' : ''}
+          ${esc(s.name)}
+        </div>
+        <div class="stat-big">${s.avg !== null ? fmtNum(s.avg) : '—'}</div>
+        <div class="stat-sub">avg score</div>
+        <div class="stat-sep"></div>
+        <div class="stat-row-val">${s.best !== null ? fmtNum(s.best) : '—'}</div>
+        <div class="stat-sub">all-time best${s.bestDate ? ` · ${esc(s.bestDate)}` : ''}</div>
+        <div class="stat-sep"></div>
+        <div class="stat-sessions"><b>${s.count}</b> session${s.count !== 1 ? 's' : ''}</div>
+      </div>`;
+  }).join('');
+}
+
+function renderHistory(data) {
+  const container = document.getElementById('history');
+  if (!data.sessions.length) {
+    container.innerHTML = '<div class="empty">No sessions logged yet.</div>';
+    return;
+  }
+
+  const sorted = [...data.sessions].sort((a,b) => b.date.localeCompare(a.date));
+
+  const ths = `<tr>
+    <th>Date</th>
+    ${data.players.map(p => `<th>${esc(p)}</th>`).join('')}
+  </tr>`;
+
+  const trs = sorted.map(s => {
+    const validScores = s.scores.filter(Number.isFinite);
+    const maxScore = validScores.length ? Math.max(...validScores) : null;
+    const cells = s.scores.map(v =>
+      `<td class="${Number.isFinite(v) && v === maxScore ? 'td-win' : ''}">${fmtNum(v)}</td>`
+    ).join('');
+    return `<tr><td class="td-date">${esc(s.date)}</td>${cells}</tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <table class="history-table">
+      <thead>${ths}</thead>
+      <tbody>${trs}</tbody>
+    </table>`;
+}
+
+function buildLogForm() {
+  const container = document.getElementById('log-inputs');
+  // Keep the date field, replace the rest
+  const dateField = container.querySelector('.log-field');
+  container.innerHTML = '';
+  container.appendChild(dateField);
+
+  cfg.players.forEach((name, i) => {
+    const div = document.createElement('div');
+    div.className = 'log-field';
+    div.innerHTML = `
+      <label>${esc(name)}</label>
+      <input type="number" id="log-p${i}" placeholder="0" min="0" step="1">`;
+    container.appendChild(div);
+  });
+
+  document.getElementById('log-date').value = todayISO();
+}
+
+function renderAll() {
+  if (!file?.data) return;
+  const stats = computeStats(file.data);
+  renderLeaderboard(stats);
+  renderStats(stats);
+  renderHistory(file.data);
+}
+
+/* ═══════════════════════════════ STATUS ═══ */
+
+function setStatus(state) {
+  const dot  = document.getElementById('status-dot');
+  const text = document.getElementById('status-text');
+  if (state === 'ok') {
+    dot.className = 'status-dot ok';
+    text.textContent = 'Connected';
+  } else if (state === 'err') {
+    dot.className = 'status-dot err';
+    text.textContent = 'Error';
+  } else {
+    dot.className = 'status-dot';
+    text.textContent = 'Loading…';
+  }
+}
+
+/* ═════════════════════════════════ INIT ═══ */
+
+async function startApp() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+
+  buildLogForm();
+  setStatus('loading');
+
+  try {
+    const result = await fetchFile(cfg);
+    if (result === null) {
+      // First run — create the file
+      const initial = { players: cfg.players, sessions: [] };
+      const sha = await putFile(cfg, initial, null);
+      file = { data: initial, sha };
+    } else {
+      file = result;
+    }
+    setStatus('ok');
+    renderAll();
+  } catch (e) {
+    setStatus('err');
+    setSaveMsg(`Failed to load: ${e.message}`, 'err');
+    console.error(e);
+  }
+}
+
+/* ══════════════════════════════════ SAVE ═══ */
+
+function setSaveMsg(msg, type = '') {
+  const el = document.getElementById('save-msg');
+  el.textContent = msg;
+  el.className = 'save-msg ' + type;
+}
+
+document.getElementById('save-btn').addEventListener('click', async () => {
+  const btn  = document.getElementById('save-btn');
+  const date = document.getElementById('log-date').value;
+
+  if (!date) { setSaveMsg('Please pick a date.', 'err'); return; }
+
+  const scores = cfg.players.map((_, i) => {
+    const v = document.getElementById(`log-p${i}`).value.trim();
+    return v === '' ? null : Number(v);
+  });
+
+  if (scores.some(v => v === null || isNaN(v))) {
+    setSaveMsg('Enter a score for every player.', 'err');
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Saving…';
+  setSaveMsg('');
+
+  try {
+    // Re-fetch latest SHA to avoid conflicts
+    const latest = await fetchFile(cfg);
+    if (latest) file = latest;
+
+    file.data.sessions.push({ date, scores });
+    const newSha = await putFile(cfg, file.data, file.sha);
+    file.sha = newSha;
+
+    // Clear score inputs
+    cfg.players.forEach((_, i) => {
+      document.getElementById(`log-p${i}`).value = '';
+    });
+
+    setSaveMsg('Saved!', 'ok');
+    renderAll();
+  } catch (e) {
+    // Roll back the optimistic push
+    file.data.sessions.pop();
+    setSaveMsg(`Error: ${e.message}`, 'err');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = 'Save';
+  }
+});
+
+/* ════════════════════════════════ SETUP ═══ */
+
+document.getElementById('setup-btn').addEventListener('click', () => {
+  const username = document.getElementById('s-user').value.trim();
+  const repo     = document.getElementById('s-repo').value.trim();
+  const token    = document.getElementById('s-token').value.trim();
+  const players  = [
+    document.getElementById('s-p1').value.trim(),
+    document.getElementById('s-p2').value.trim(),
+    document.getElementById('s-p3').value.trim(),
+  ];
+
+  const errEl = document.getElementById('setup-err');
+
+  if (!username || !repo || !token || players.some(p => !p)) {
+    errEl.textContent = 'Please fill in all fields.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  errEl.style.display = 'none';
+  cfg = { username, repo, token, players };
+  saveCfg(cfg);
+  startApp();
+});
+
+document.getElementById('settings-btn').addEventListener('click', () => {
+  if (cfg) {
+    document.getElementById('s-user').value  = cfg.username;
+    document.getElementById('s-repo').value  = cfg.repo;
+    document.getElementById('s-token').value = cfg.token;
+    cfg.players.forEach((p, i) => {
+      document.getElementById(`s-p${i + 1}`).value = p;
+    });
+  }
+  document.getElementById('app').style.display          = 'none';
+  document.getElementById('setup-screen').style.display = 'flex';
+});
+
+/* ═══════════════════════════════════ BOOT ═══ */
+
+const HARDCODED = {
+  username: 'tshanmusic',
+  repo:     'maptap-tracker',
+  token:    ['ghp_b9sPNPNwoy3AIs2', 'SQrnByrwBdPKsVt00E8gs'].join(''),
+  players:  ['T', 'Cat', 'Sab'],
+};
+
+cfg = HARDCODED;
+saveCfg(cfg);
+startApp();
+</script>
+</body>
+</html>
