@@ -458,14 +458,23 @@
 
     /* ─── Tabs ───────────────────────────────────────────── */
 
+    .tab-bar {
+      background: var(--surface);
+      border-bottom: 1.5px solid var(--border);
+    }
+
+    .tab-bar-inner {
+      max-width: 740px;
+      margin: 0 auto;
+      padding: 0 1rem;
+      display: flex;
+      align-items: center;
+    }
+
     .tabs {
       display: flex;
       gap: 0.25rem;
-      border-bottom: 1.5px solid var(--border);
-      background: var(--surface);
-      padding: 0 1rem;
-      max-width: 740px;
-      margin: 0 auto;
+      flex: 1;
     }
 
     .tab-btn {
@@ -490,6 +499,24 @@
 
     .tab-panel { display: none; }
     .tab-panel.active { display: contents; }
+
+    .filter-select {
+      appearance: none;
+      -webkit-appearance: none;
+      background: var(--bg) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236b6965' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 0.6rem center;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      color: var(--text);
+      font-size: 0.8125rem;
+      font-weight: 600;
+      padding: 0.35rem 2rem 0.35rem 0.75rem;
+      cursor: pointer;
+      outline: none;
+      transition: border-color 0.15s;
+      flex-shrink: 0;
+    }
+
+    .filter-select:focus { border-color: var(--accent); }
 
     /* ─── Spinner ────────────────────────────────────────── */
 
@@ -586,10 +613,20 @@
     </div>
   </header>
 
-  <nav class="tabs">
-    <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
-    <button class="tab-btn" data-tab="history">History</button>
-  </nav>
+  <div class="tab-bar">
+    <div class="tab-bar-inner">
+      <nav class="tabs">
+        <button class="tab-btn active" data-tab="dashboard">Dashboard</button>
+        <button class="tab-btn" data-tab="history">History</button>
+      </nav>
+      <select id="filter-select" class="filter-select">
+        <option value="all">All-time</option>
+        <option value="week">This week</option>
+        <option value="month">This month</option>
+        <option value="year">This year</option>
+      </select>
+    </div>
+  </div>
 
   <main>
 
@@ -755,18 +792,44 @@ async function putFile(cfg, data, sha) {
 
 /* ═══════════════════════════════ APP STATE ═══ */
 
-let cfg   = null;   // { username, repo, token, players: [s,s,s] }
-let file  = null;   // { data: {...}, sha: string }
+let cfg    = null;   // { username, repo, token, players: [s,s,s] }
+let file   = null;   // { data: {...}, sha: string }
+let filter = 'all';  // 'all' | 'week' | 'month' | 'year'
+
+/* ══════════════════════════════ FILTERING ═══ */
+
+function filterStart() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = now.getMonth();
+  const d = now.getDate();
+  if (filter === 'week') {
+    const diff = (now.getDay() + 6) % 7; // days since Monday
+    const mon = new Date(y, m, d - diff);
+    return mon.toISOString().slice(0, 10);
+  }
+  if (filter === 'month') return `${y}-${String(m + 1).padStart(2, '0')}-01`;
+  if (filter === 'year')  return `${y}-01-01`;
+  return null;
+}
+
+function filteredSessions(sessions) {
+  const from = filterStart();
+  return from ? sessions.filter(s => s.date >= from) : sessions;
+}
+
+function periodLabel() {
+  const year = new Date().getFullYear();
+  return { all: 'All-Time', week: 'This Week', month: 'This Month', year: `${year}` }[filter];
+}
 
 /* ══════════════════════════ COMPUTED STATS ═══ */
 
-function computeStats(data) {
-  return data.players.map((name, i) => {
-    const scores = data.sessions.map(s => s.scores[i]).filter(Number.isFinite);
+function computeStats(players, sessions) {
+  return players.map((name, i) => {
+    const scores = sessions.map(s => s.scores[i]).filter(Number.isFinite);
     const best   = scores.length ? Math.max(...scores) : null;
-    const bestSess = best !== null
-      ? data.sessions.find(s => s.scores[i] === best)
-      : null;
+    const bestSess = best !== null ? sessions.find(s => s.scores[i] === best) : null;
     return {
       name,
       avg:      average(scores),
@@ -780,6 +843,8 @@ function computeStats(data) {
 /* ════════════════════════════════ RENDER ═══ */
 
 function renderLeaderboard(stats) {
+  const label = periodLabel();
+
   const ranks = (list, key) => {
     if (!list.length) return '<div class="lb-empty">No data yet.</div>';
     return list.map((s, i) => `
@@ -793,11 +858,14 @@ function renderLeaderboard(stats) {
   const byAvg  = [...stats].filter(s => s.avg  !== null).sort((a,b) => b.avg  - a.avg);
   const byBest = [...stats].filter(s => s.best !== null).sort((a,b) => b.best - a.best);
 
+  document.querySelector('#lb-avg  .card-title').textContent = `Avg Score · ${label}`;
+  document.querySelector('#lb-best .card-title').textContent = `Top Score · ${label}`;
   document.getElementById('lb-avg').innerHTML  = ranks(byAvg,  'avg');
   document.getElementById('lb-best').innerHTML = ranks(byBest, 'best');
 }
 
 function renderStats(stats) {
+  const label = periodLabel();
   const topAvg = stats.reduce((best, s) =>
     s.avg !== null && (best === null || s.avg > best.avg) ? s : best, null);
 
@@ -810,28 +878,28 @@ function renderStats(stats) {
           ${esc(s.name)}
         </div>
         <div class="stat-big">${s.avg !== null ? fmtNum(s.avg) : '—'}</div>
-        <div class="stat-sub">avg score</div>
+        <div class="stat-sub">avg score · ${esc(label)}</div>
         <div class="stat-sep"></div>
         <div class="stat-row-val">${s.best !== null ? fmtNum(s.best) : '—'}</div>
-        <div class="stat-sub">all-time best${s.bestDate ? ` · ${esc(s.bestDate)}` : ''}</div>
+        <div class="stat-sub">top score · ${esc(label)}${s.bestDate ? ` · ${esc(s.bestDate)}` : ''}</div>
         <div class="stat-sep"></div>
         <div class="stat-sessions"><b>${s.count}</b> session${s.count !== 1 ? 's' : ''}</div>
       </div>`;
   }).join('');
 }
 
-function renderHistory(data) {
+function renderHistory(players, sessions) {
   const container = document.getElementById('history');
-  if (!data.sessions.length) {
-    container.innerHTML = '<div class="empty">No sessions logged yet.</div>';
+  if (!sessions.length) {
+    container.innerHTML = '<div class="empty">No sessions in this period.</div>';
     return;
   }
 
-  const sorted = [...data.sessions].sort((a,b) => b.date.localeCompare(a.date));
+  const sorted = [...sessions].sort((a,b) => b.date.localeCompare(a.date));
 
   const ths = `<tr>
     <th>Date</th>
-    ${data.players.map(p => `<th>${esc(p)}</th>`).join('')}
+    ${players.map(p => `<th>${esc(p)}</th>`).join('')}
   </tr>`;
 
   const trs = sorted.map(s => {
@@ -871,10 +939,11 @@ function buildLogForm() {
 
 function renderAll() {
   if (!file?.data) return;
-  const stats = computeStats(file.data);
+  const sessions = filteredSessions(file.data.sessions);
+  const stats = computeStats(file.data.players, sessions);
   renderLeaderboard(stats);
   renderStats(stats);
-  renderHistory(file.data);
+  renderHistory(file.data.players, sessions);
 }
 
 /* ═══════════════════════════════ STATUS ═══ */
@@ -1039,6 +1108,11 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.classList.add('active');
     document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
   });
+});
+
+document.getElementById('filter-select').addEventListener('change', e => {
+  filter = e.target.value;
+  renderAll();
 });
 
 /* ═══════════════════════════════════ BOOT ═══ */
