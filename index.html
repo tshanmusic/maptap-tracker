@@ -637,11 +637,11 @@
         <div class="section-heading">Leaderboard</div>
         <div class="lb-grid">
           <div class="card">
-            <div class="card-title">Avg Score</div>
+            <div class="card-title" id="lb-avg-title">Avg Score</div>
             <div id="lb-avg"></div>
           </div>
           <div class="card">
-            <div class="card-title">All-Time Best</div>
+            <div class="card-title" id="lb-best-title">Top Score</div>
             <div id="lb-best"></div>
           </div>
         </div>
@@ -858,8 +858,8 @@ function renderLeaderboard(stats) {
   const byAvg  = [...stats].filter(s => s.avg  !== null).sort((a,b) => b.avg  - a.avg);
   const byBest = [...stats].filter(s => s.best !== null).sort((a,b) => b.best - a.best);
 
-  document.querySelector('#lb-avg  .card-title').textContent = `Avg Score · ${label}`;
-  document.querySelector('#lb-best .card-title').textContent = `Top Score · ${label}`;
+  document.getElementById('lb-avg-title').textContent  = `Avg Score · ${label}`;
+  document.getElementById('lb-best-title').textContent = `Top Score · ${label}`;
   document.getElementById('lb-avg').innerHTML  = ranks(byAvg,  'avg');
   document.getElementById('lb-best').innerHTML = ranks(byBest, 'best');
 }
